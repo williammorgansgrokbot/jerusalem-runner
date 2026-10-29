@@ -531,7 +531,7 @@ function updateHUD() {
 
 // ---------- Main loop ----------
 const clock = new THREE.Clock();
-let fpsAcc = 0, fpsN = 0, qualityLevel = 0, animT = 0;
+let lowN = 0, fpsAcc = 0, fpsN = 0, qualityLevel = 0, animT = 0;
 const camTarget = new THREE.Vector3(), lookTarget = new THREE.Vector3(0, 1.2, -8), curLook = new THREE.Vector3(0, 1.2, -8);
 
 function playerBox() { const h = S.sliding > 0 ? 0.85 : 1.9; return { x0: S.x - 0.38, x1: S.x + 0.38, y0: S.y, y1: S.y + h, z0: -0.35, z1: 0.35 }; }
@@ -553,7 +553,7 @@ function update(dt) {
   animT += dt * (speed > 0 ? speed * 0.55 : 2);
 
   // world scroll
-  TX.cobble.offset.y += dz / (300 / 80);
+  TX.cobble.offset.y = (TX.cobble.offset.y + dz / (300 / 80)) % 1;
   for (const seg of segments) { seg.g.position.z += dz; if (seg.g.position.z > 10 + SEG_LEN) { seg.g.position.z -= SEG_N * SEG_LEN; randomizeSeg(seg, false); } }
   for (let i = 0; i < DM; i++) { dPos[i * 3 + 2] += dz * 0.9; dPos[i * 3 + 1] += Math.sin(animT * 0.05 + i) * 0.003; if (dPos[i * 3 + 2] > 10) dPos[i * 3 + 2] -= 90; }
   dGeo.attributes.position.needsUpdate = true;
@@ -564,7 +564,7 @@ function update(dt) {
 
     // player physics
     if (!S.dead) {
-      const tx = LANES[S.lane]; S.x += (tx - S.x) * Math.min(1, dt * 14);
+      const tx = LANES[S.lane]; S.x += (tx - S.x) * (1 - Math.exp(-14 * dt));
       S.vy -= GRAV * dt; S.y += S.vy * dt; if (S.y < 0) { if (S.vy < -5 && playing) emit(S.x, 0.1, 0.2, 6, 0xd9b783, 2, 0.35, 0.4, 0.5); S.y = 0; S.vy = 0; }
       if (S.sliding > 0) S.sliding -= dt;
     }
@@ -589,7 +589,7 @@ function update(dt) {
       const it = items[i];
       it.z += dz;
       if (S.power.magnet > 0 && it.kind === 'coin' && it.z > -18 && it.z < 2) it.mag = true;
-      if (it.mag && !S.dead) { const k = Math.min(1, dt * 10); it.x += (S.x - it.x) * k; it.y += (S.y + 1 - it.y) * k; it.z += (0 - it.z) * k; }
+      if (it.mag && !S.dead) { const k = (1 - Math.exp(-10 * dt)); it.x += (S.x - it.x) * k; it.y += (S.y + 1 - it.y) * k; it.z += (0 - it.z) * k; }
       it.phase += dt;
       it.g.position.set(it.x, it.y + (it.kind === 'coin' ? 0 : Math.sin(it.phase * 3) * 0.15), it.z);
       { const sp = it.g.userData.spr, s0 = ISZ[it.kind]; if (it.kind === 'coin') sp.scale.x = s0 * (0.25 + 0.75 * Math.abs(Math.cos(it.phase * 3))); else sp.rotation.z = Math.sin(it.phase * 2) * 0.12; }
@@ -615,8 +615,8 @@ function update(dt) {
     const air = S.y > 0.01, sl = S.sliding > 0;
     if (sl) { P.setFrame('slide', 1.45); P.body.position.y = 0; }
     else if (air) { P.setFrame('jump', 2.35); P.body.position.y = 0; }
-    else { const f = Math.floor(animT / 1.6) % 2; P.setFrame(f ? 'run1' : 'run0', 2.3); P.body.position.y = Math.abs(Math.sin(animT * 0.98)) * 0.12; }
-    P.body.rotation.z = P.lean * 0.18;
+    else { const f = Math.floor(animT / 1.6) % 2; P.setFrame(f ? 'run1' : 'run0', 2.3); P.body.position.y = Math.abs(Math.sin(animT * 0.98)) * 0.06; }
+    P.body.rotation.z = P.lean * 0.07;
   }
   P.blob.scale.setScalar(1 - Math.min(0.6, S.y * 0.2));
   P.shield.visible = S.power.shield > 0 || S.invuln > 0; P.shield.material.opacity = 0.16 + Math.sin(animT * 0.5) * 0.06;
@@ -625,10 +625,10 @@ function update(dt) {
 
   // camera
   const fovT = 60 + (speed - BASE_SPEED) * 0.45;
-  camera.fov += (Math.min(78, Math.max(58, fovT)) - camera.fov) * Math.min(1, dt * 2); camera.updateProjectionMatrix();
+  camera.fov += (Math.min(78, Math.max(58, fovT)) - camera.fov) * (1 - Math.exp(-1.5 * dt)); camera.updateProjectionMatrix();
   if (S.state === 'menu' || S.state === 'loading') { const t = performance.now() * 0.00015; camTarget.set(Math.sin(t) * 1.5, 3.2, 6.5); lookTarget.set(0, 3.5, -40); }
   else { camTarget.set(S.x * 0.65, 3.7 + S.y * 0.35, 6.8); lookTarget.set(S.x * 0.45, 1.3 + S.y * 0.25, -9); }
-  camera.position.lerp(camTarget, Math.min(1, dt * 6)); curLook.lerp(lookTarget, Math.min(1, dt * 7));
+  camera.position.lerp(camTarget, (1 - Math.exp(-6 * dt))); curLook.lerp(lookTarget, (1 - Math.exp(-7 * dt)));
   if (S.shake > 0) { S.shake -= dt; camera.position.x += rand(-1, 1) * S.shake * 0.4; camera.position.y += rand(-1, 1) * S.shake * 0.3; }
   camera.lookAt(curLook);
   sky.position.copy(camera.position);
@@ -650,7 +650,8 @@ function adaptQuality(dt) {
   fpsAcc += dt; fpsN++;
   if (fpsAcc > 2.5) {
     const fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0;
-    if (fps < 48 && qualityLevel < 3 && S.state === 'play') {
+    lowN = fps < 45 ? lowN + 1 : 0;
+    if (lowN >= 2 && qualityLevel < 3 && S.state === 'play') { lowN = 0;
       qualityLevel++;
       if (qualityLevel === 1) { sun.shadow.mapSize.set(1024, 1024); sun.shadow.map?.dispose(); sun.shadow.map = null; }
       if (qualityLevel === 2) { pixelRatio = Math.max(1, pixelRatio * 0.75); renderer.setPixelRatio(pixelRatio); onResize(); }
@@ -667,15 +668,15 @@ addEventListener('resize', onResize);
 document.addEventListener('visibilitychange', () => { if (document.hidden && S.state === 'play') togglePause(); });
 
 function frame() {
-  const dt = Math.min(0.05, clock.getDelta());
+  const rawDt = Math.min(1 / 30, clock.getDelta()); sdt += (rawDt - sdt) * 0.2; const dt = sdt;
   if (S.state !== 'paused') update(dt);
-  for (const b of billboards) { if (!b.parent?.visible && b.parent !== scene) continue; b.getWorldPosition(_wp); b.rotation.y = Math.atan2(camera.position.x - _wp.x, camera.position.z - _wp.z) * 0.6; }
+  for (const b of billboards) b.rotation.y = b.userData.fixed ?? 0; // fixed facing: no per-frame wobble when the camera moves
   if (useOutline) outline.render(scene, camera); else renderer.render(scene, camera);
   adaptQuality(dt);
   requestAnimationFrame(frame);
 }
-const _wp = new THREE.Vector3(); if (Q.has('nooutline')) useOutline = false;
+const _wp = new THREE.Vector3(); let sdt = 1 / 60; if (Q.has('nooutline')) useOutline = false;
 S.state = 'menu'; show('loading', false);
 // spawn a few attract-mode items on menu
 frame();
-window.__game = { S, startGame, act, Sfx };
+window.__game = { camera, S, startGame, act, Sfx };

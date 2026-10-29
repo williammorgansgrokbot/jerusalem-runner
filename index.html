@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Run Through Jerusalem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/addons/"}}</script>
+</head><body>
+<canvas id="c"></canvas>
+<div id="hud" class="hidden">
+  <div class="hl">
+    <div class="stat"><span class="lbl">Score</span><span id="score">0</span></div>
+    <div class="stat small"><span class="lbl">Distance</span><span id="dist">0 cubits</span></div>
+  </div>
+  <div class="hr">
+    <div class="stat coin"><img class="ci" src="assets/coin.png"><span id="coins">0</span></div>
+    <div class="stat mult">x<span id="mult">1</span></div>
+  </div>
+  <div id="powers"></div>
+  <div id="toast"></div>
+  <button id="pauseBtn" class="iconbtn" title="Pause (P)">II</button>
+  <button id="muteBtn" class="iconbtn" title="Mute (M)">&#9835;</button>
+</div>
+<div id="menu" class="overlay title">
+  <div class="titlewrap">
+    <div class="ribbon">A Bible Game Night Adventure</div>
+    <h1 class="logo">Run Through<br>Jerusalem</h1>
+    <div class="pill">DODGE &bull; COLLECT &bull; RUN &bull; REJOICE</div>
+    <button id="playBtn" class="btn big">&#9654; PLAY</button>
+    <div class="best">Best: <b id="bestMenu">0</b></div>
+    <div class="card controls">
+      <div><kbd>&larr;</kbd><kbd>&rarr;</kbd> change lane &nbsp; <kbd>&uarr;</kbd>/<kbd>Space</kbd> jump &nbsp; <kbd>&darr;</kbd> slide</div>
+      <div>Phones &amp; tablets: swipe left, right, up, down</div>
+      <div class="legend"><span><img src="assets/sandals.png">Sandals of Speed</span><span><img src="assets/shield.png">Shield of Faith</span><span><img src="assets/magnet.png">Coin Magnet</span></div>
+    </div>
+  </div>
+</div>
+<div id="over" class="overlay hidden">
+  <div class="panel">
+    <div class="kicker">Your journey ends here, for now</div>
+    <h2>Well Run!</h2>
+    <div class="results">
+      <div><span class="lbl">Score</span><b id="fScore">0</b></div>
+      <div><span class="lbl">Shekels</span><b id="fCoins">0</b></div>
+      <div><span class="lbl">Distance</span><b id="fDist">0</b></div>
+    </div>
+    <div id="newBest" class="newbest hidden">&#10022; New High Score &#10022;</div>
+    <div class="best">Best: <b id="bestOver">0</b></div>
+    <blockquote id="verse"></blockquote>
+    <label class="chk"><input type="checkbox" id="verseToggle" checked> Show a Bible verse</label>
+    <button id="againBtn" class="btn">Run Again</button>
+    <button id="menuBtn" class="btn ghost">Main Menu</button>
+  </div>
+</div>
+<div id="paused" class="overlay hidden"><div class="panel"><h2>Resting</h2><button id="resumeBtn" class="btn">Continue</button></div></div>
+<div id="loading" class="overlay"><div class="panel"><div class="kicker">Preparing the city...</div></div></div>
+<script type="module" src="game.js"></script>
+</body></html>

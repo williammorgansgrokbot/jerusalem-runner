@@ -319,23 +319,43 @@ dust.frustumCulled = false; scene.add(dust);
 // ---------- Audio (synthesized) ----------
 const Sfx = {
   ctx: null, master: null, muted: localStorage.getItem('jr_muted') === '1', musicT: null,
+  live: 0,
   init() {
     if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
     try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
-    this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.6; this.master.connect(this.ctx.destination);
+    this.master = this.ctx.createGain(); this.master.gain.value = this.muted ? 0 : 0.6;
+    this.hp = this.ctx.createBiquadFilter(); this.hp.type = 'highpass'; this.hp.frequency.value = 120; this.hp.Q.value = 0.7;
+    this.master.connect(this.hp); this.hp.connect(this.ctx.destination);
+    this.music = this.ctx.createGain(); this.music.gain.value = 0.32; this.music.connect(this.master);
     const len = this.ctx.sampleRate; this.noise = this.ctx.createBuffer(1, len, len); const d = this.noise.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
   },
-  tone(f, dur, type = 'sine', vol = 0.2, f2, delay = 0) {
+  _track(node, ...chain) { this.live++; node.onended = () => { this.live--; node.disconnect(); chain.forEach(n => n.disconnect()); }; },
+  tone(f, dur, type = 'sine', vol = 0.2, f2, delay = 0, dest) {
     if (!this.ctx) return; const t = this.ctx.currentTime + delay;
     const o = this.ctx.createOscillator(), g = this.ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
+    o.connect(g); g.connect(dest || this.master); o.start(t); o.stop(t + dur + 0.04); this._track(o, g);
+  },
+  pluck(f, t, vol = 0.12, dur = 0.5) { // lyre/oud-like: bright attack, filtered decay, short
+    const c = this.ctx, o1 = c.createOscillator(), o2 = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain();
+    o1.type = 'triangle'; o2.type = 'sawtooth'; o1.frequency.value = f; o2.frequency.value = f * 1.003;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(f * 7, t); lp.frequency.exponentialRampToValueAtTime(f * 1.5, t + dur * 0.6); lp.Q.value = 2;
+    const g2 = c.createGain(); g2.gain.value = 0.25;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); g.gain.linearRampToValueAtTime(0, t + dur + 0.02);
+    o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(g); g.connect(this.music);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05); this._track(o1, lp, g); this._track(o2, g2);
+  },
+  drum(t, f, q, vol, dur) { // soft hand percussion (filtered noise tap)
+    const c = this.ctx, s = c.createBufferSource(), bp = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = this.noise; bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(bp); bp.connect(g); g.connect(this.music); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02); this._track(s, bp, g);
   },
   noiseHit(dur, f, vol = 0.3, type = 'lowpass', f2) {
     if (!this.ctx) return; const t = this.ctx.currentTime;
     const s = this.ctx.createBufferSource(); s.buffer = this.noise; const fl = this.ctx.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(f, t); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
-    const g = this.ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(fl); fl.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur);
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(this.master); s.start(t); s.stop(t + dur + 0.02); this._track(s, fl, g);
   },
   coin() { this.tone(1318, 0.12, 'sine', 0.12); this.tone(1976, 0.22, 'sine', 0.1, null, 0.06); },
   jump() { this.noiseHit(0.25, 600, 0.15, 'bandpass', 2500); this.tone(220, 0.2, 'triangle', 0.08, 440); },
@@ -343,24 +363,32 @@ const Sfx = {
   lane() { this.noiseHit(0.12, 1500, 0.07, 'bandpass', 3000); },
   item() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, 0.25, 'triangle', 0.1, null, i * 0.06)); },
   power() { [523, 659, 784, 1046, 1318].forEach((f, i) => this.tone(f, 0.35, 'sawtooth', 0.05, null, i * 0.07)); this.tone(1046, 0.8, 'sine', 0.1, null, 0.35); },
-  crash() { this.noiseHit(0.6, 900, 0.5, 'lowpass', 80); this.tone(140, 0.5, 'square', 0.12, 40); },
+  crash() { this.noiseHit(0.6, 900, 0.5, 'lowpass', 80); this.tone(220, 0.4, 'triangle', 0.1, 130); },
   shieldBreak() { this.noiseHit(0.4, 4000, 0.25, 'highpass', 800); this.tone(880, 0.4, 'sine', 0.12, 220); },
   setMuted(m) { this.muted = m; localStorage.setItem('jr_muted', m ? '1' : '0'); if (this.master) this.master.gain.value = m ? 0 : 0.6; },
   startMusic() {
     if (!this.ctx || this.musicT) return;
-    const scale = [146.8, 155.6, 185, 196, 220, 233.1, 277.2, 293.7, 311.1, 370, 392, 440]; // D hijaz
-    const drone = this.ctx.createOscillator(), dg = this.ctx.createGain(), lp = this.ctx.createBiquadFilter();
-    drone.type = 'sawtooth'; drone.frequency.value = 73.4; lp.type = 'lowpass'; lp.frequency.value = 300; dg.gain.value = 0.035;
-    drone.connect(lp); lp.connect(dg); dg.connect(this.master); drone.start(); this.drone = { drone, dg };
-    let step = 0, idx = 4;
-    this.musicT = setInterval(() => {
-      if (!this.ctx) return; step++;
-      if (step % 4 === 0) { this.noiseHit(0.12, 180, 0.2, 'lowpass'); this.tone(73, 0.15, 'sine', 0.15, 50); }
-      if (step % 4 === 2) this.noiseHit(0.06, 3000, 0.05, 'highpass');
-      if (Math.random() < 0.6) { idx = Math.max(0, Math.min(scale.length - 1, idx + pick([-2, -1, 1, 1, 2]))); this.tone(scale[idx] * 2, 0.35, 'triangle', 0.045); }
-    }, 180);
+    // G major pentatonic, cheerful storybook tune; 8th notes at ~126 bpm, scheduled ahead
+    const N = { G3: 196, A3: 220, B3: 246.9, D4: 293.7, E4: 329.6, G4: 392, A4: 440, B4: 493.9, D5: 587.3, E5: 659.3, G5: 784 };
+    const mel = ['G4', 'B4', 'D5', 'B4', 'E5', 'D5', 'B4', 'A4', 'G4', 'A4', 'B4', 'D5', 'B4', 'A4', 'G4', '-',
+                 'E4', 'G4', 'A4', 'B4', 'A4', 'G4', 'E4', 'D4', 'E4', 'G4', 'A4', 'B4', 'D5', 'E5', 'D5', '-',
+                 'G5', 'E5', 'D5', 'B4', 'D5', 'B4', 'A4', 'G4', 'A4', 'B4', 'A4', 'G4', 'E4', 'D4', 'E4', '-',
+                 'D4', 'E4', 'G4', 'A4', 'B4', 'D5', 'B4', 'A4', 'G4', 'B4', 'A4', 'E4', 'G4', '-', 'G4', '-'];
+    const bass = ['G3', 'D4', 'E4', 'B3', 'A3', 'E4', 'D4', 'G3'];
+    const step = 60 / 126 / 2; let i = 0, next = this.ctx.currentTime + 0.1;
+    const tick = () => {
+      while (next < this.ctx.currentTime + 0.3) {
+        const n = mel[i % mel.length]; if (n !== '-') this.pluck(N[n], next, 0.1, 0.45);
+        if (i % 4 === 0) this.pluck(N[bass[(i / 4 | 0) % bass.length]], next, 0.07, 0.6);
+        if (i % 8 === 0 || i % 8 === 3) this.drum(next, 380, 1.2, 0.22, 0.12);   // dum
+        if (i % 2 === 1) this.drum(next, 3500, 2, 0.08, 0.05);                   // tek
+        if (i % 8 === 6) this.drum(next, 2200, 1.5, 0.12, 0.07);
+        i++; next += step;
+      }
+    };
+    tick(); this.musicT = setInterval(tick, 100);
   },
-  stopMusic() { if (this.musicT) { clearInterval(this.musicT); this.musicT = null; } if (this.drone) { this.drone.drone.stop(); this.drone = null; } },
+  stopMusic() { if (this.musicT) { clearInterval(this.musicT); this.musicT = null; } },
 };
 
 // ---------- Game state ----------
@@ -650,4 +678,4 @@ const _wp = new THREE.Vector3(); if (Q.has('nooutline')) useOutline = false;
 S.state = 'menu'; show('loading', false);
 // spawn a few attract-mode items on menu
 frame();
-window.__game = { S, startGame, act };
+window.__game = { S, startGame, act, Sfx };

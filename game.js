@@ -75,7 +75,7 @@ const M = {
   lantern: noOutline(new THREE.MeshBasicMaterial({ color: 0xffe066 })),
   rope: new THREE.LineBasicMaterial({ color: 0x6b4a2e }),
 };
-function spriteMat(tex) { return noOutline(new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, fog: true })); }
+function spriteMat(tex) { return noOutline(new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.45, side: THREE.DoubleSide, fog: true, toneMapped: false })); }
 const planeG = new THREE.PlaneGeometry(1, 1); planeG.translate(0, 0.5, 0);
 const planeC = new THREE.PlaneGeometry(1, 1);
 // billboard of given height (keeps texture aspect once loaded)
@@ -615,7 +615,7 @@ function update(dt) {
     const air = S.y > 0.01, sl = S.sliding > 0;
     if (sl) { P.setFrame('slide', 1.45); P.body.position.y = 0; }
     else if (air) { P.setFrame('jump', 2.35); P.body.position.y = 0; }
-    else { const f = Math.floor(animT / 1.6) % 2; P.setFrame(f ? 'run1' : 'run0', 2.3); P.body.position.y = Math.abs(Math.sin(animT * 0.98)) * 0.12; P.sprite.scale.x *= f ? -1 : 1; }
+    else { const f = Math.floor(animT / 1.6) % 2; P.setFrame(f ? 'run1' : 'run0', 2.3); P.body.position.y = Math.abs(Math.sin(animT * 0.98)) * 0.12; }
     P.body.rotation.z = P.lean * 0.18;
   }
   P.blob.scale.setScalar(1 - Math.min(0.6, S.y * 0.2));

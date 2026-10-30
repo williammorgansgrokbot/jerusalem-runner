@@ -48,3 +48,8 @@ blockquote{font:500 19px/1.4 'Fredoka';margin:14px 4px 8px;color:var(--brown);ba
 blockquote cite{display:block;font:700 14px 'Fredoka';font-style:normal;margin-top:6px;color:var(--accent)}
 .chk{font:500 14px 'Fredoka';color:var(--brown2);display:block;margin-bottom:4px;cursor:pointer}
 @media (max-width:640px){.overlay.title{justify-content:center;padding-left:16px}.overlay.title::before{background:rgba(255,244,207,.45)}.stat{font-size:22px}.ci{width:24px;height:24px}}
+/* keep overlay cards fully on-screen at any size/aspect */
+.overlay:not(.title){align-items:safe center;justify-content:safe center}
+.overlay>.panel{margin:auto;max-width:min(520px,calc(100vw - 32px));box-sizing:border-box;flex-shrink:0}
+@media (max-height:700px){.overlay>.panel{transform:scale(.88);transform-origin:center}}
+@media (max-height:560px){.overlay>.panel{transform:scale(.74)}}

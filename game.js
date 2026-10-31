@@ -399,20 +399,22 @@ const S = {
 const BASE_SPEED = 15, MAX_SPEED = 36, GRAV = 40, JUMP_V = 13.2;
 const DUR = { sandals: 6, shield: 14, magnet: 10 };
 const VERSES = [
-  ['Pray for the peace of Jerusalem: they shall prosper that love thee.', 'Psalm 122:6'],
-  ['Let us run with patience the race that is set before us, looking unto Jesus.', 'Hebrews 12:1-2'],
-  ['I have fought a good fight, I have finished my course, I have kept the faith.', '2 Timothy 4:7'],
-  ['They that wait upon the LORD shall renew their strength; they shall run, and not be weary.', 'Isaiah 40:31'],
-  ['Above all, taking the shield of faith, wherewith ye shall be able to quench all the fiery darts of the wicked.', 'Ephesians 6:16'],
-  ['Thy word is a lamp unto my feet, and a light unto my path.', 'Psalm 119:105'],
-  ['As the mountains are round about Jerusalem, so the LORD is round about his people.', 'Psalm 125:2'],
-  ['Lay not up for yourselves treasures upon earth... but lay up for yourselves treasures in heaven.', 'Matthew 6:19-20'],
-  ['Know ye not that they which run in a race run all, but one receiveth the prize? So run, that ye may obtain.', '1 Corinthians 9:24'],
-  ['Our feet shall stand within thy gates, O Jerusalem.', 'Psalm 122:2'],
-  ['How beautiful upon the mountains are the feet of him that bringeth good tidings.', 'Isaiah 52:7'],
-  ['The name of the LORD is a strong tower: the righteous runneth into it, and is safe.', 'Proverbs 18:10'],
+  ['Pray for the peace of Jerusalem. Say, “May those who love you be secure.”', 'Psalm 122:6'],
+  ['A huge cloud of witnesses is all around us. So let us throw off everything that stands in our way. Let us throw off any sin that holds on to us so tightly. And let us keep on running the race marked out for us. Let us keep looking to Jesus. He is the one who started this journey of faith. And he is the one who completes the journey of faith. He paid no attention to the shame of the cross. He suffered there because of the joy he was looking forward to. Then he sat down at the right hand of the throne of God.', 'Hebrews 12:1-2'],
+  ['I have fought the good fight. I have finished the race. I have kept the faith.', '2 Timothy 4:7'],
+  ['But those who trust in the Lord will receive new strength. They will fly as high as eagles. They will run and not get tired. They will walk and not grow weak.', 'Isaiah 40:31'],
+  ['Also, pick up the shield of faith. With it you can put out all the flaming arrows of the evil one.', 'Ephesians 6:16'],
+  ['Your word is like a lamp that shows me the way. It is like a light that guides me.', 'Psalm 119:105'],
+  ['Like the mountains around Jerusalem, the Lord is all around his people both now and forever.', 'Psalm 125:2'],
+  ['Do not gather for yourselves riches on earth. Moths and rats can destroy them. Thieves can break in and steal them. Instead, gather for yourselves riches in heaven. There, moths and rats do not destroy them. There, thieves do not break in and steal them.', 'Matthew 6:19-20'],
+  ['In a race all the runners run. But only one gets the prize. You know that, don’t you? So run in a way that will get you the prize.', '1 Corinthians 9:24'],
+  ['Jerusalem, our feet are standing inside your gates.', 'Psalm 122:2'],
+  ['What a beautiful sight it is to see messengers coming with good news! How beautiful to see them coming down from the mountains with a message about peace! How wonderful it is when they bring the good news that we are saved! How wonderful when they say to Zion, “Your God rules!”', 'Isaiah 52:7'],
+  ['The name of the Lord is like a strong tower. Godly people run to it and are safe.', 'Proverbs 18:10'],
 ];
 
+function fitOver(){const ov=$('over'),q=$('verse');if(!ov||!q)return;q.style.fontSize='';let f=parseFloat(getComputedStyle(q).fontSize);while(ov.scrollHeight>ov.clientHeight+1&&f>11){f-=.5;q.style.fontSize=f+'px'}}
+addEventListener('resize',()=>{if($('over')&&!$('over').classList.contains('hidden'))fitOver()});
 function clearWorld() {
   for (const o of obstacles) { o.g.visible = false; obPool[o.type].push(o); } obstacles.length = 0;
   for (const it of items) { it.g.visible = false; itemPool[it.kind].push(it); } items.length = 0;
@@ -502,8 +504,8 @@ function gameOver() {
   $('fScore').textContent = sc.toLocaleString(); $('fCoins').textContent = S.coins; $('fDist').textContent = Math.floor(S.dist) + " cubits";
   $('bestOver').textContent = S.best.toLocaleString(); $('bestMenu').textContent = S.best.toLocaleString(); show('newBest', nb);
   const showV = localStorage.getItem('jr_verse') !== '0'; $('verseToggle').checked = showV;
-  const v = pick(VERSES); $('verse').innerHTML = `&ldquo;${v[0]}&rdquo;<cite>${v[1]} (KJV)</cite>`; show('verse', showV);
-  show('over', true);
+  const v = pick(VERSES); $('verse').innerHTML = `&ldquo;${v[0]}&rdquo;<cite>${v[1]} (NIrV)</cite><small class="nirv-note">Scripture quotations taken from The Holy Bible, New International Reader&#39;s Version®, NIrV® Copyright © 1995, 1996, 1998, 2014 by Biblica, Inc.® Used by permission. All rights reserved worldwide.</small>`; show('verse', showV);
+  show('over', true); requestAnimationFrame(fitOver);
 }
 function togglePause() {
   if (S.state === 'play') { S.state = 'paused'; show('paused', true); if (Sfx.ctx) Sfx.ctx.suspend(); }
